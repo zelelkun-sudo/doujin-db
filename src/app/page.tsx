@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 
+// ★追加：このページを動的レンダリングにする（静的エクスポート時のエラー回避）
+export const dynamic = 'force-dynamic';
+
 const supabaseUrl = 'https://fsgxecznvvpajhkcdaad.supabase.co';
 const supabaseKey = 'sb_publishable_IlAJbRtk3xDK3VB6nvwzhg_YnuF93va';
 const supabase = createClient(supabaseUrl, supabaseKey);
