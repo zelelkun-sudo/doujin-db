@@ -1,51 +1,68 @@
 import { createClient } from '@supabase/supabase-js';
+import Link from 'next/link';
 
-// Supabaseクライアントの設定（環境変数を使うのがベストですが、まずは直接でもOKです）
 const supabaseUrl = 'https://fsgxecznvvpajhkcdaad.supabase.co';
 const supabaseKey = 'sb_publishable_IlAJbRtk3xDK3VB6nvwzhg_YnuF93va';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export default async function Home() {
-  // Supabaseの works テーブルからデータを取得（新しい順）
-  const { data: works, error } = await supabase
-    .from('works')
-    .select('*')
-    .order('created_at', { ascending: false });
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const params = await searchParams;
+  const searchQuery = params.q || '';
+
+  // データベースから作品を取得（検索ワードがある場合はタイトルやサークル名で絞り込み）
+  let query = supabase.from('works').select('*').order('created_at', { ascending: false });
+
+  if (searchQuery) {
+    query = query.or(`title.ilike.%${searchQuery}%,circle_name.ilike.%${searchQuery}%`);
+  }
+
+  const { data: works, error } = await query;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8">
       {/* ヘッダー */}
-      <header className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between border-b border-zinc-800 pb-4">
+      <header className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between border-b border-zinc-800 pb-4 gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2 text-orange-500">
           🔥 同人厳選データベース
         </h1>
-        <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
-          <span className="text-xs bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-full border border-zinc-700">
-            NTR除外: ON
-          </span>
-          <span className="text-xs bg-orange-500/10 text-orange-400 px-3 py-1.5 rounded-full border border-orange-500/20">
-            #新着
-          </span>
-        </div>
+
+        {/* 検索フォーム */}
+        <form method="GET" className="w-full md:w-auto flex gap-2">
+          <input
+            type="text"
+            name="q"
+            defaultValue={searchQuery}
+            placeholder="タイトルやサークル名で検索..."
+            className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-zinc-100 focus:outline-none focus:border-orange-500 w-full md:w-80"
+          />
+          <button
+            type="submit"
+            className="bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors"
+          >
+            検索
+          </button>
+        </form>
       </header>
 
-      {/* メイングリッド一覧 */}
+      {/* メイン一覧グリッド */}
       <main className="max-w-7xl mx-auto">
-        {error && (
-          <p className="text-red-500 text-center py-4">データの取得に失敗しました。</p>
-        )}
+        {error && <p className="text-red-500 text-center py-4">データの取得に失敗しました。</p>}
 
-        {/* グリッドレイアウト（スマホ1列、タブレット2〜3列、PC4列） */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {works && works.map((work) => (
-            <div
+            <Link
               key={work.id || work.fanza_cid}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-all duration-300 flex flex-col group"
+              href={`/works/${work.fanza_cid}`}
+              className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 hover:scale-[1.02] transition-all duration-300 flex flex-col group"
             >
-              {/* サムネイル画像 */}
+              {/* サムネイル */}
               <div className="relative aspect-[3/4] overflow-hidden bg-zinc-800">
                 <img
-                  src={work.thumbnail_url || "https://pics.dmm.co.jp/digital/doujin/dj2601/dj2601pl.jpg"}
+                  src={work.thumbnail_url}
                   alt={work.title}
                   className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                 />
@@ -72,17 +89,11 @@ export default async function Home() {
                   ))}
                 </div>
 
-                {/* FANZAリンク */}
-                <a
-                  href={work.fanza_aff_url || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold py-2 rounded-lg text-center transition-colors shadow-lg shadow-orange-900/20"
-                >
-                  FANZAで見る
-                </a>
+                <span className="w-full bg-zinc-800 group-hover:bg-orange-600 text-zinc-300 group-hover:text-white text-xs font-bold py-2 rounded-lg text-center transition-colors">
+                  詳細を見る
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </main>
