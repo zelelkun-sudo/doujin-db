@@ -1,221 +1,74 @@
-"use client"; // ← これを1番上に書く！
-import "./globals.css"; // ← これが抜けているとデザインが真っ白になります
-import React, { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-type SampleViewerModalProps = {
-  work: {
-    title: string;
-    circleName: string;
-    sampleImages: string[];
-    totalPageCount: number;
-    price?: number;
-    salePrice?: number;
-    discountRate?: number;
-    aiSummary: string[];
-    fetishTags: string[];
-    fanzaUrl?: string;
-  };
-  onClose: () => void;
-};
-
-function SampleViewerModal({ work, onClose }: SampleViewerModalProps) {
-  return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <section
-        className="mx-auto my-8 max-w-3xl rounded-xl border border-zinc-700 bg-zinc-900 p-4 text-zinc-100"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={work.title}
-      >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs text-zinc-400">{work.circleName}</p>
-            <h2 className="text-lg font-bold">{work.title}</h2>
-            <p className="mt-1 text-sm text-zinc-400">
-              {work.salePrice ?? work.price}円 ・ 全{work.totalPageCount}ページ
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded bg-zinc-800 px-3 py-1 text-sm hover:bg-zinc-700"
-            aria-label="閉じる"
-          >
-            閉じる
-          </button>
-        </div>
-        {work.aiSummary.length > 0 && (
-          <ul className="mb-4 list-inside list-disc text-sm text-zinc-300">
-            {work.aiSummary.map((summary, index) => (
-              <li key={`${summary}-${index}`}>{summary}</li>
-            ))}
-          </ul>
-        )}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {work.sampleImages.map((image, index) => (
-            <img
-              key={`${image}-${index}`}
-              src={image}
-              alt={`${work.title} サンプル ${index + 1}`}
-              className="h-auto w-full rounded-lg object-contain"
-            />
-          ))}
-        </div>
-        {work.fanzaUrl && (
-          <a
-            href={work.fanzaUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 inline-block rounded bg-pink-600 px-4 py-2 text-sm font-bold text-white hover:bg-pink-500"
-          >
-            作品ページを見る
-          </a>
-        )}
-      </section>
-    </div>
-  );
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-export default function HomePage() {
-  const [works, setWorks] = useState<any[]>([]);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [excludeNtr, setExcludeNtr] = useState<boolean>(true); // デフォルトで地雷(NTR)除外ON
-  const [activeWork, setActiveWork] = useState<any | null>(null);
-
-  useEffect(() => {
-    async function fetchWorks() {
-      const { data } = await supabase
-        .from("works")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (data) setWorks(data);
-    }
-    fetchWorks();
-  }, []);
-
-  // 全作品から人気の性癖タグ一覧を自動抽出
-  const allTags = Array.from(new Set(works.flatMap((w) => w.fetish_tags || []))).slice(0, 15);
-
-  // タグ絞り込み＆地雷除外のリアルタイムフィルタリング
-  const filteredWorks = works.filter((w) => {
-    if (selectedTag && !w.fetish_tags?.includes(selectedTag)) return false;
-    if (excludeNtr && w.ng_tags?.includes("NTR")) return false;
-    return true;
-  });
+export default async function Home() {
+  // Supabaseからデータを取得する処理（例）
+  // const { data: works } = await supabase.from('works').select('*').order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8">
       {/* ヘッダー */}
-      <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/90 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-lg font-extrabold tracking-tight text-white">
-            🔥 同人厳選データベース
-          </h1>
-          {/* 地雷除外トグルスイッチ */}
-          <button
-            onClick={() => setExcludeNtr(!excludeNtr)}
-            className={`rounded-full px-3 py-1 text-xs font-bold transition ${excludeNtr
-              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-              : "bg-zinc-800 text-zinc-400"
-              }`}
-          >
-            {excludeNtr ? "🛡️ NTR除外：ON" : "NTR除外：OFF"}
-          </button>
-        </div>
-
-        {/* 横スクロール・性癖タグフィルター */}
-        <div className="mx-auto mt-3 flex max-w-5xl gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            onClick={() => setSelectedTag(null)}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${selectedTag === null ? "bg-pink-600 text-white" : "bg-zinc-800 text-zinc-300"
-              }`}
-          >
-            すべて表示
-          </button>
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${selectedTag === tag ? "bg-pink-600 text-white" : "bg-zinc-800 text-zinc-300"
-                }`}
-            >
-              #{tag}
-            </button>
-          ))}
+      <header className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between border-b border-zinc-800 pb-4">
+        <h1 className="text-2xl font-bold flex items-center gap-2 text-orange-500">
+          🔥 同人厳選データベース
+        </h1>
+        {/* フィルターやタグエリア */}
+        <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
+          <span className="text-xs bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-full border border-zinc-700">
+            NTR除外: ON
+          </span>
+          <span className="text-xs bg-orange-500/10 text-orange-400 px-3 py-1.5 rounded-full border border-orange-500/20">
+            #新着
+          </span>
         </div>
       </header>
 
-      {/* 作品一覧グリッド */}
-      <main className="mx-auto max-w-5xl px-4 py-6">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {filteredWorks.map((work) => (
-            <div
-              key={work.id}
-              onClick={() => setActiveWork(work)}
-              className="group cursor-pointer overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 transition hover:border-pink-500/50"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden bg-zinc-800">
-                <img
-                  src={work.thumbnail_url}
-                  alt={work.title}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                />
-                {work.discount_rate > 0 && (
-                  <span className="absolute left-2 top-2 rounded bg-rose-600 px-2 py-0.5 text-xs font-extrabold text-white shadow">
-                    {work.discount_rate}%OFF
-                  </span>
-                )}
-                <span className="absolute bottom-2 right-2 rounded bg-black/80 px-2 py-1 text-[11px] font-bold text-pink-400">
-                  📖 サンプル {work.sample_image_urls?.length || 0}枚を読む
-                </span>
-              </div>
+      {/* メイングリッド一覧 */}
+      <main className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {/* ※ ここをSupabaseからのループ(Works.map)に置き換えます */}
 
-              <div className="p-3">
-                <p className="truncate text-[11px] text-zinc-400">{work.circle_name}</p>
-                <h2 className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-zinc-100">
-                  {work.title}
-                </h2>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {work.fetish_tags?.slice(0, 3).map((t: string) => (
-                    <span key={t} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              </div>
+        {/* サンプルカード（デザイン確認用） */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-all duration-300 flex flex-col group">
+          {/* サムネイル画像エリア */}
+          <div className="relative aspect-[3/4] overflow-hidden bg-zinc-800">
+            <img
+              src="https://pics.dmm.co.jp/digital/doujin/dj2601/dj2601pl.jpg"
+              alt="作品サムネイル"
+              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-orange-400 text-xs font-bold px-2 py-1 rounded-md">
+              ¥1,980
             </div>
-          ))}
-        </div>
-      </main>
+          </div>
 
-      {/* タップ時に開くサンプル立ち読みモーダル */}
-      {activeWork && (
-        <SampleViewerModal
-          work={{
-            title: activeWork.title,
-            circleName: activeWork.circle_name,
-            sampleImages: activeWork.sample_image_urls || [],
-            totalPageCount: activeWork.page_count || 35,
-            price: activeWork.price,
-            salePrice: activeWork.sale_price,
-            discountRate: activeWork.discount_rate,
-            aiSummary: activeWork.ai_summary_3lines || [],
-            fetishTags: activeWork.fetish_tags || [],
-            fanzaUrl: activeWork.fanza_aff_url,
-          }}
-          onClose={() => setActiveWork(null)}
-        />
-      )}
+          {/* テキスト情報エリア */}
+          <div className="p-4 flex flex-col flex-grow">
+            <div className="text-xs text-zinc-400 mb-1 truncate">サークル名 / 作者</div>
+            <h2 className="font-bold text-sm line-clamp-2 mb-3 group-hover:text-orange-400 transition-colors">
+              夏風にめくられて（作品タイトルのサンプル）
+            </h2>
+
+            {/* タグ一覧 */}
+            <div className="flex flex-wrap gap-1 mb-4 mt-auto">
+              <span className="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded">
+                #API自動取得
+              </span>
+              <span className="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded">
+                #新着
+              </span>
+            </div>
+
+            {/* リンクボタン */}
+            <a
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold py-2 rounded-lg text-center transition-colors shadow-lg shadow-orange-900/20"
+            >
+              FANZAで見る
+            </a>
+          </div>
+        </div>
+        {/* ループここまで */}
+
+      </main>
     </div>
   );
 }

@@ -18,9 +18,10 @@ def fetch_fanza_works():
         "api_id": DMM_API_ID,
         "affiliate_id": DMM_AFFILIATE_ID,
         "site": "FANZA",
-        "service": "digital",
+        "service": "doujin",     # serviceを doujin
+        # floorの指定をあえて外す、または以下のように設定
         "sort": "date",
-        "hits": 5,
+        "hits": 10,
         "output": "json"
     }
 
@@ -28,9 +29,7 @@ def fetch_fanza_works():
     response = requests.get(url, params=params)
     print(f"ステータスコード: {response.status_code}")
     
-    # APIからの返事をそのまま画面に出力する
     data = response.json()
-    print("APIからの生レスポンス:", data)
 
     if "result" in data and "items" in data["result"]:
         items = data["result"]["items"]
@@ -48,10 +47,15 @@ def fetch_fanza_works():
                 if makers:
                     circle_name = makers[0].get("name", "不明サークル")
 
+            # 価格の安全な取得（'~' や '円'、',' を取り除いて数値にする）
             price = 0
             if "prices" in item:
                 price_str = item["prices"].get("price", "0")
-                price = int(price_str.replace("円", "").replace(",", "")) if price_str else 0
+                clean_price_str = str(price_str).split("~")[0].replace("円", "").replace(",", "").strip()
+                if clean_price_str.isdigit():
+                    price = int(clean_price_str)
+                else:
+                    price = 0
 
             work_data = {
                 "fanza_cid": fanza_cid,
@@ -77,7 +81,7 @@ def fetch_fanza_works():
             except Exception as e:
                 print(f"登録エラー ({title}): {e}")
     else:
-        print("APIからデータが正常に取得できませんでした。上の「生レスポンス」の内容を確認してみてください。")
+        print("APIからデータが正常に取得できませんでした。")
 
 if __name__ == "__main__":
     fetch_fanza_works()
