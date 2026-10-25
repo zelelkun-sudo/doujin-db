@@ -2,7 +2,84 @@
 
 import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import SampleViewerModal from "@/components/SampleViewerModal";
+
+type SampleViewerModalProps = {
+  work: {
+    title: string;
+    circleName: string;
+    sampleImages: string[];
+    totalPageCount: number;
+    price?: number;
+    salePrice?: number;
+    discountRate?: number;
+    aiSummary: string[];
+    fetishTags: string[];
+    fanzaUrl?: string;
+  };
+  onClose: () => void;
+};
+
+function SampleViewerModal({ work, onClose }: SampleViewerModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <section
+        className="mx-auto my-8 max-w-3xl rounded-xl border border-zinc-700 bg-zinc-900 p-4 text-zinc-100"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={work.title}
+      >
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs text-zinc-400">{work.circleName}</p>
+            <h2 className="text-lg font-bold">{work.title}</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              {work.salePrice ?? work.price}円 ・ 全{work.totalPageCount}ページ
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded bg-zinc-800 px-3 py-1 text-sm hover:bg-zinc-700"
+            aria-label="閉じる"
+          >
+            閉じる
+          </button>
+        </div>
+        {work.aiSummary.length > 0 && (
+          <ul className="mb-4 list-inside list-disc text-sm text-zinc-300">
+            {work.aiSummary.map((summary, index) => (
+              <li key={`${summary}-${index}`}>{summary}</li>
+            ))}
+          </ul>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {work.sampleImages.map((image, index) => (
+            <img
+              key={`${image}-${index}`}
+              src={image}
+              alt={`${work.title} サンプル ${index + 1}`}
+              className="h-auto w-full rounded-lg object-contain"
+            />
+          ))}
+        </div>
+        {work.fanzaUrl && (
+          <a
+            href={work.fanzaUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-block rounded bg-pink-600 px-4 py-2 text-sm font-bold text-white hover:bg-pink-500"
+          >
+            作品ページを見る
+          </a>
+        )}
+      </section>
+    </div>
+  );
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,8 +125,8 @@ export default function HomePage() {
           <button
             onClick={() => setExcludeNtr(!excludeNtr)}
             className={`rounded-full px-3 py-1 text-xs font-bold transition ${excludeNtr
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                : "bg-zinc-800 text-zinc-400"
+              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+              : "bg-zinc-800 text-zinc-400"
               }`}
           >
             {excludeNtr ? "🛡️ NTR除外：ON" : "NTR除外：OFF"}
