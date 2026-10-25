@@ -1,3 +1,5 @@
+import "./globals.css"; // ← これが抜けているとデザインが真っ白になります
+
 "use client";
 
 import React, { useEffect, useState } from "react";
