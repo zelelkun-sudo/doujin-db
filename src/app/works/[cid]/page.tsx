@@ -6,6 +6,17 @@ const supabaseUrl = 'https://fsgxecznvvpajhkcdaad.supabase.co';
 const supabaseKey = 'sb_publishable_IlAJbRtk3xDK3VB6nvwzhg_YnuF93va';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// 静的エクスポート（ビルド用）のIDリスト生成
+export async function generateStaticParams() {
+    const { data: works } = await supabase.from('works').select('fanza_cid');
+
+    if (!works) return [];
+
+    return works.map((work) => ({
+        cid: work.fanza_cid,
+    }));
+}
+
 export default async function WorkDetailPage({
     params,
 }: {
